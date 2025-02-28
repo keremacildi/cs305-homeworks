@@ -1,0 +1,66 @@
+%{
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+int comment_depth = 0;
+int string_start_line = 0;
+int str_index = 0;
+char str_buf[1024];
+%}
+
+%option noyywrap
+
+%x STRING
+%x COMMENT
+
+%%
+
+"/*"                    { comment_depth = 1; BEGIN(COMMENT); }
+"//".*                  { }
+"*/"                    { printf("%d_ILLEGAL_CHARACTER_(*/)\n", yylineno); }
+<COMMENT>"/*"          { comment_depth++; }
+<COMMENT>"*/"          { comment_depth--; if(comment_depth == 0) BEGIN(INITIAL); }
+<COMMENT>\n            { yylineno++; }
+<COMMENT>.             { }
+[ \t]+                 { }
+\r                     { }
+\n                     { yylineno++; }
+"Meeting"              { printf("%d_tSTARTMEETING\n", yylineno); }
+"endMeeting"           { printf("%d_tENDMEETING\n", yylineno); }
+"subMeetings"          { printf("%d_tSTARTSUBMEETINGS\n", yylineno); }
+"endSubMeetings"       { printf("%d_tENDSUBMEETINGS\n", yylineno); }
+"meetingNumber"        { printf("%d_tMEETINGNUMBER\n", yylineno); }
+"description"          { printf("%d_tDESCRIPTION\n", yylineno); }
+"startDate"            { printf("%d_tSTARTDATE\n", yylineno); }
+"endDate"              { printf("%d_tENDDATE\n", yylineno); }
+"startTime"            { printf("%d_tSTARTTIME\n", yylineno); }
+"endTime"              { printf("%d_tENDTIME\n", yylineno); }
+"locations"            { printf("%d_tLOCATIONS\n", yylineno); }
+"isRecurring"          { printf("%d_tISRECURRING\n", yylineno); }
+"frequency"            { printf("%d_tFREQUENCY\n", yylineno); }
+"repetitionCount"      { printf("%d_tREPETITIONCOUNT\n", yylineno); }
+"daily"                { printf("%d_tDAILY\n", yylineno); }
+"weekly"               { printf("%d_tWEEKLY\n", yylineno); }
+"monthly"              { printf("%d_tMONTHLY\n", yylineno); }
+"yearly"               { printf("%d_tYEARLY\n", yylineno); }
+"yes"                  { printf("%d_tYES\n", yylineno); }
+"no"                   { printf("%d_tNO\n", yylineno); }
+"="                    { printf("%d_tASSIGN\n", yylineno); }
+","                    { printf("%d_tCOMMA\n", yylineno); }
+[0-9]{2}"."[0-9]{2}"."[0-9]{4}  { printf("%d_tDATE_(%s)\n", yylineno, yytext); }
+[0-9]{2}"."[0-9]{2}             { printf("%d_tTIME_(%s)\n", yylineno, yytext); }
+[0-9]+                  { printf("%d_tINTEGER_(%s)\n", yylineno, yytext); }
+[A-Za-z][A-Za-z0-9_]*   { printf("%d_tIDENTIFIER_(%s)\n", yylineno, yytext); }
+\"                      { strcpy(str_buf, "\""); str_index = strlen(str_buf); string_start_line = yylineno; BEGIN(STRING); }
+<STRING>\"             { strcat(str_buf, "\""); printf("%d_tSTRING_(%s)\n", string_start_line, str_buf); BEGIN(INITIAL); }
+<STRING>\n             { str_buf[str_index++] = '\n'; str_buf[str_index] = '\0'; yylineno++; }
+<STRING>.              { int len = strlen(yytext); for (int i = 0; i < len; i++) { str_buf[str_index++] = yytext[i]; } str_buf[str_index] = '\0'; }
+<STRING><<EOF>>        { printf("%d_tSTRING_(%s)\n", string_start_line, str_buf); return 0; }
+.                       { printf("%d_ILLEGAL_CHARACTER_(%s)\n", yylineno, yytext); }
+
+%%
+
+int main(int argc, char **argv) {
+    yylex();
+    return 0;
+}
