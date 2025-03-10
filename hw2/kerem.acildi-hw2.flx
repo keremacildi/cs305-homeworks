@@ -1,0 +1,100 @@
+%{
+#include <stdio.h>
+#include "kerem.acildi-hw2.tab.h"
+%}
+
+%option yylineno
+
+tSTARTMEETING Meeting
+tSTARTSUBMEETINGS subMeetings
+tMEETINGNUMBER meetingNumber
+tSTARTDATE startDate
+tENDDATE endDate
+tLOCATIONS locations
+tFREQUENCY frequency
+tDAILY daily
+tMONTHLY monthly
+tYES yes
+tASSIGN =
+tENDMEETING endMeeting
+tENDSUBMEETINGS endSubMeetings
+tDESCRIPTION description
+tSTARTTIME startTime
+tENDTIME endTime
+tISRECURRING isRecurring
+tREPETITIONCOUNT repetitionCount
+tWEEKLY weekly
+tYEARLY yearly
+tNO no
+tCOMMA ,
+
+tINTEGER [0-9]+
+tSTRING \"[^\"]*\"
+tIDENTIFIER [a-zA-Z][a-zA-Z_0-9]*
+tTIME [0-9][0-9]"."[0-9][0-9]
+tDATE [0-9][0-9]"."[0-9][0-9]"."[0-9][0-9][0-9][0-9]
+
+%{
+    int line = 1;
+    int comment_level = 0;
+%}
+
+%option noyywrap
+%x comment
+
+tCOMMENT "//"[^\n]*
+tMULTICOMMENT "/*"
+
+%%
+
+\n line++;
+{tMULTICOMMENT} {
+    comment_level++;
+    BEGIN(comment); /* Enters the comment state */
+}
+<comment>{
+  "/*" { comment_level++; }    /* Handle nested multi-line comments */
+  "*/" {
+    if (--comment_level == 0) {
+      BEGIN(INITIAL);    /* Return to initial state when all comments are closed */
+    }
+  }
+  \n {line++;}   /* Increment line for newlines inside comments */
+  . ;
+}
+
+
+{tCOMMENT} ;
+{tSTRING} {return tSTRING;} 
+{tINTEGER} {return tINTEGER;}
+{tDATE} {return tDATE;}
+{tTIME} {return tTIME;}
+{tCOMMA} {return tCOMMA;}
+{tSTARTMEETING} {return tSTARTMEETING;}
+{tSTARTSUBMEETINGS} {return tSTARTSUBMEETINGS;}
+{tMEETINGNUMBER} {return tMEETINGNUMBER;}
+{tSTARTDATE} {return tSTARTDATE;}
+{tENDDATE} {return tENDDATE;}
+{tLOCATIONS} {return tLOCATIONS;}
+{tFREQUENCY} {return tFREQUENCY;}
+{tDAILY} {return tDAILY;}
+{tMONTHLY} {return tMONTHLY;}
+{tYES} {return tYES;}
+{tASSIGN} {return tASSIGN;}
+{tENDMEETING} {return tENDMEETING;}
+{tENDSUBMEETINGS} {return tENDSUBMEETINGS;}
+{tDESCRIPTION} {return tDESCRIPTION;}
+{tSTARTTIME} {return tSTARTTIME;}
+{tENDTIME} {return tENDTIME;}
+{tISRECURRING} {return tISRECURRING;}
+{tREPETITIONCOUNT} {return tREPETITIONCOUNT;}
+{tWEEKLY} {return tWEEKLY;}
+{tYEARLY} {return tYEARLY;}
+{tNO} {return tNO;}
+
+{tIDENTIFIER} {return tIDENTIFIER;}
+
+
+. ;
+
+%%
